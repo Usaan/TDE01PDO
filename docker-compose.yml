@@ -34,12 +34,27 @@ services:
       DATABASE_URL: "${DATABASE_URL_DOCKER}"
       PORT: "${PORT}"
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      CORS_ORIGIN: "${CORS_ORIGIN}"
     ports:
       - "3000:3000"
     depends_on:
       mysql:
         condition: service_healthy
     command: sh -c "npx prisma migrate deploy && npm start"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}"
+    container_name: lista-compras-frontend
+    restart: always
+    environment:
+      CLERK_SECRET_KEY: "${CLERK_SECRET_KEY}"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
 
 volumes:
   mysql_data:

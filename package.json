@@ -1,0 +1,8 @@
+{
+  "name": "lista-compras",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}
