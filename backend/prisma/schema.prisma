@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  ALIMENTO
+  BEBIDA
+  DOCE
+  LIMPEZA
+  HIGIENE
+  FRUTA
+  VERDURA
+  CARNE
+  LATICINIO
+  PADARIA
+  CONGELADO
+  OUTROS
+}
+
+model User {
+  id           String        @id @default(uuid())
+  firstName    String
+  lastName     String
+  email        String        @unique
+  googleId     String        @unique
+  photo        String?
+  createdAt    DateTime      @default(now())
+  shoppingList ShoppingList?
+  products     Product[]
+}
+
+model ShoppingList {
+  id        String     @id @default(uuid())
+  createdAt DateTime   @default(now())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     ListItem[]
+}
+
+model Product {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal
+  category    Category
+  createdAt   DateTime   @default(now())
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id])
+  items       ListItem[]
+}
+
+model ListItem {
+  id        String       @id @default(uuid())
+  quantity  Int          @default(1)
+  isChecked Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  listId    String
+  list      ShoppingList @relation(fields: [listId], references: [id])
+  productId String
+  product   Product      @relation(fields: [productId], references: [id])
+
+  @@unique([listId, productId])
+}
