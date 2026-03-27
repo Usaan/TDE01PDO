@@ -38,15 +38,22 @@ describe("GET /", () => {
 });
 
 describe("GET /products", () => {
-  it("retorna lista de produtos", async () => {
+  it("retorna lista de produtos do usuário", async () => {
     prismaMock.product.findMany.mockResolvedValue([
-      { id: "1", name: "Arroz", price: "5.00", category: "ALIMENTO" },
+      {
+        id: "1",
+        name: "Arroz",
+        price: "5.00",
+        category: "ALIMENTO",
+        userId: "user-1",
+      },
     ]);
 
-    const res = await request(app).get("/products");
+    const res = await request(app).get("/products?userId=user-1");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body[0].name).toBe("Arroz");
+    expect(res.body[0].userId).toBe("user-1");
   });
 });
 
@@ -92,19 +99,37 @@ describe("PATCH /products/:id", () => {
       name: "Leite Integral",
       price: "5.00",
       category: "LATICINIO",
+      userId: "user-1",
     };
     prismaMock.product.findUnique.mockResolvedValue(produto);
     prismaMock.product.update.mockResolvedValue({ ...produto, price: "5.00" });
 
-    const res = await request(app).patch("/products/1").send({ price: 5.0 });
+    const res = await request(app)
+      .patch("/products/1")
+      .send({ price: 5.0, userId: "user-1" });
     expect(res.status).toBe(200);
   });
 
   it("retorna 404 se produto não existir", async () => {
     prismaMock.product.findUnique.mockResolvedValue(null);
 
-    const res = await request(app).patch("/products/999").send({ price: 5.0 });
+    const res = await request(app)
+      .patch("/products/999")
+      .send({ price: 5.0, userId: "user-1" });
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Produto não encontrado");
+  });
+
+  it("retorna 403 se usuário não for dono do produto", async () => {
+    prismaMock.product.findUnique.mockResolvedValue({
+      id: "1",
+      userId: "user-2",
+    });
+
+    const res = await request(app)
+      .patch("/products/1")
+      .send({ price: 5.0, userId: "user-1" });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Sem permissão para editar este produto");
   });
 });

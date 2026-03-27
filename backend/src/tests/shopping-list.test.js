@@ -123,14 +123,12 @@ describe("POST /shopping-list/:userId/items", () => {
       },
     });
 
-    const res = await request(app)
-      .post("/shopping-list/user-1/items")
-      .send({
-        productName: "Leite",
-        quantity: 1,
-        category: "LATICINIO",
-        price: 4.5,
-      });
+    const res = await request(app).post("/shopping-list/user-1/items").send({
+      productName: "Leite",
+      quantity: 1,
+      category: "LATICINIO",
+      price: 4.5,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.product.name).toBe("Leite");
@@ -139,6 +137,10 @@ describe("POST /shopping-list/:userId/items", () => {
 
 describe("PATCH /list-items/:id", () => {
   it("marca item como checado", async () => {
+    prismaMock.listItem.findUnique.mockResolvedValue({
+      id: "item-1",
+      list: { userId: "user-1" },
+    });
     prismaMock.listItem.update.mockResolvedValue({
       id: "item-1",
       quantity: 1,
@@ -153,18 +155,51 @@ describe("PATCH /list-items/:id", () => {
 
     const res = await request(app)
       .patch("/list-items/item-1")
-      .send({ isChecked: true });
+      .send({ isChecked: true, userId: "user-1" });
 
     expect(res.status).toBe(200);
     expect(res.body.isChecked).toBe(true);
+  });
+
+  it("retorna 403 se usuário não for dono do item", async () => {
+    prismaMock.listItem.findUnique.mockResolvedValue({
+      id: "item-1",
+      list: { userId: "user-2" },
+    });
+
+    const res = await request(app)
+      .patch("/list-items/item-1")
+      .send({ isChecked: true, userId: "user-1" });
+
+    expect(res.status).toBe(403);
   });
 });
 
 describe("DELETE /list-items/:id", () => {
   it("remove item com sucesso", async () => {
+    prismaMock.listItem.findUnique.mockResolvedValue({
+      id: "item-1",
+      list: { userId: "user-1" },
+    });
     prismaMock.listItem.delete.mockResolvedValue({});
 
-    const res = await request(app).delete("/list-items/item-1");
+    const res = await request(app)
+      .delete("/list-items/item-1")
+      .send({ userId: "user-1" });
+
     expect(res.status).toBe(204);
+  });
+
+  it("retorna 403 se usuário não for dono do item", async () => {
+    prismaMock.listItem.findUnique.mockResolvedValue({
+      id: "item-1",
+      list: { userId: "user-2" },
+    });
+
+    const res = await request(app)
+      .delete("/list-items/item-1")
+      .send({ userId: "user-1" });
+
+    expect(res.status).toBe(403);
   });
 });

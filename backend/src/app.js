@@ -141,7 +141,10 @@ app.patch("/users/:id", async (req, res) => {
 // ROTAS DE PRODUTOS
 app.get("/products", async (req, res) => {
   try {
-    const products = await prisma.product.findMany({ include: { user: true } });
+    const { userId } = req.query;
+    const products = await prisma.product.findMany({
+      where: userId ? { userId } : undefined,
+    });
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: "Erro ao buscar produtos" });
@@ -155,7 +158,7 @@ app.post("/products", async (req, res) => {
     if (!name || name.trim() === "") {
       return res.status(400).json({ error: "Nome do produto é obrigatório" });
     }
-    if (price && price < 0) {
+    if (price !== undefined && price < 0) {
       return res.status(400).json({ error: "Preço não pode ser negativo" });
     }
 
@@ -177,7 +180,7 @@ app.post("/products", async (req, res) => {
 app.patch("/products/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, category } = req.body;
+    const { name, description, price, category, userId } = req.body;
 
     if (name !== undefined && name.trim() === "") {
       return res.status(400).json({ error: "Nome não pode estar vazio" });
@@ -189,6 +192,11 @@ app.patch("/products/:id", async (req, res) => {
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: "Produto não encontrado" });
+    }
+    if (existing.userId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Sem permissão para editar este produto" });
     }
 
     const updateData = {};
@@ -341,12 +349,25 @@ app.post("/shopping-list/:userId/items", async (req, res) => {
 app.patch("/list-items/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { quantity, isChecked } = req.body;
+    const { quantity, isChecked, userId } = req.body;
 
     if (quantity !== undefined && quantity <= 0) {
       return res
         .status(400)
         .json({ error: "Quantidade deve ser maior que zero" });
+    }
+
+    const existing = await prisma.listItem.findUnique({
+      where: { id },
+      include: { list: true },
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Item não encontrado" });
+    }
+    if (existing.list.userId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Sem permissão para editar este item" });
     }
 
     const listItem = await prisma.listItem.update({
@@ -364,6 +385,21 @@ app.patch("/list-items/:id", async (req, res) => {
 app.delete("/list-items/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body;
+
+    const existing = await prisma.listItem.findUnique({
+      where: { id },
+      include: { list: true },
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Item não encontrado" });
+    }
+    if (existing.list.userId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Sem permissão para remover este item" });
+    }
+
     await prisma.listItem.delete({ where: { id } });
     res.status(204).send();
   } catch (error) {
