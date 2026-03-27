@@ -113,7 +113,7 @@ app.patch("/users/:id", async (req, res) => {
     const { id } = req.params;
     const { firstName, lastName, photo } = req.body;
 
-    if (firstName && firstName.trim() === "") {
+    if (firstName !== undefined && firstName.trim() === "") {
       return res.status(400).json({ error: "Nome não pode estar vazio" });
     }
 
@@ -260,7 +260,7 @@ app.post("/shopping-list/:userId/items", async (req, res) => {
         .status(400)
         .json({ error: "É necessário informar productId ou productName" });
     }
-    if (quantity && quantity <= 0) {
+    if (quantity !== undefined && quantity <= 0) {
       return res
         .status(400)
         .json({ error: "Quantidade deve ser maior que zero" });
@@ -343,7 +343,7 @@ app.patch("/list-items/:id", async (req, res) => {
     const { id } = req.params;
     const { quantity, isChecked } = req.body;
 
-    if (quantity && quantity <= 0) {
+    if (quantity !== undefined && quantity <= 0) {
       return res
         .status(400)
         .json({ error: "Quantidade deve ser maior que zero" });
